@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#dce7f4}.title{font-size:26px;font-weight:700}.sub{font-size:14px;fill:#92a8be}.axis{font-size:13px;fill:#aebfd0}.grid{stroke:#32465b;stroke-width:1}.line{fill:none;stroke-width:4}</style>
+<rect width="960" height="540" fill="#101820"/>
+<text x="92" y="34" class="title">Simulation cost by agent count</text>
+<text x="92" y="55" class="sub">Release mean of three runs · logarithmic milliseconds</text>
+<line x1="92" y1="462.00" x2="924" y2="462.00" class="grid"/>
+<text x="80" y="467.00" text-anchor="end" class="axis">0.1 ms</text>
+<line x1="92" y1="329.33" x2="924" y2="329.33" class="grid"/>
+<text x="80" y="334.33" text-anchor="end" class="axis">1 ms</text>
+<line x1="92" y1="196.67" x2="924" y2="196.67" class="grid"/>
+<text x="80" y="201.67" text-anchor="end" class="axis">10 ms</text>
+<line x1="92" y1="64.00" x2="924" y2="64.00" class="grid"/>
+<text x="80" y="69.00" text-anchor="end" class="axis">100 ms</text>
+<text x="92.00" y="498" text-anchor="middle" class="axis">1k</text>
+<text x="300.00" y="498" text-anchor="middle" class="axis">5k</text>
+<text x="508.00" y="498" text-anchor="middle" class="axis">10k</text>
+<text x="716.00" y="498" text-anchor="middle" class="axis">25k</text>
+<text x="924.00" y="498" text-anchor="middle" class="axis">50k</text>
+<polyline points="92.00,446.36 300.00,374.42 508.00,329.19 716.00,258.52 924.00,193.64" class="line" stroke="#46c2ff"/>
+<circle cx="92.00" cy="446.36" r="6" fill="#46c2ff"/>
+<circle cx="300.00" cy="374.42" r="6" fill="#46c2ff"/>
+<circle cx="508.00" cy="329.19" r="6" fill="#46c2ff"/>
+<circle cx="716.00" cy="258.52" r="6" fill="#46c2ff"/>
+<circle cx="924.00" cy="193.64" r="6" fill="#46c2ff"/>
+<line x1="710" y1="88" x2="744" y2="88" stroke="#46c2ff" stroke-width="4"/>
+<text x="754" y="93" class="axis">Optimized</text>
+<polyline points="92.00,205.60 300.00,70.25" class="line" stroke="#ffb347"/>
+<circle cx="92.00" cy="205.60" r="6" fill="#ffb347"/>
+<circle cx="300.00" cy="70.25" r="6" fill="#ffb347"/>
+<line x1="710" y1="114" x2="744" y2="114" stroke="#ffb347" stroke-width="4"/>
+<text x="754" y="119" class="axis">Baseline</text>
+<text x="508.00" y="526" text-anchor="middle" class="axis">Active agents</text>
+</svg>
