@@ -76,6 +76,8 @@ consumer acknowledgement or a third buffer so the producer cannot lap it.
 
 ## Executables
 
+- `rushgrid_app`: native Windows fixed-step viewer with live controls, spatial
+  overlays, flow vectors, occupancy heat, and timing percentiles.
 - `rushgrid_demo`: fixed-length scenario runner, live coarse timings, dynamic
   incident, and PPM snapshot export.
 - `rushgrid_benchmark`: reproducible warm-up/capture/repeat runner and CSV

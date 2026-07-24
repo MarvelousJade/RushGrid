@@ -35,10 +35,14 @@ target_link_libraries(rushgrid_demo PRIVATE rushgrid_core)
 add_executable(rushgrid_benchmark src/app/benchmark_main.cpp)
 target_link_libraries(rushgrid_benchmark PRIVATE rushgrid_core)
 
+if(WIN32)
+    add_executable(rushgrid_app WIN32 src/app/window_main.cpp)
+    target_link_libraries(rushgrid_app PRIVATE rushgrid_core user32 gdi32)
+endif()
+
 if(RUSHGRID_BUILD_TESTS)
     enable_testing()
     add_executable(rushgrid_tests tests/rushgrid_tests.cpp)
     target_link_libraries(rushgrid_tests PRIVATE rushgrid_core)
     add_test(NAME rushgrid_tests COMMAND rushgrid_tests)
 endif()
-

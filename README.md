@@ -52,6 +52,31 @@ The project has no runtime or test-framework dependency. Visual output is a
 portable PPM image, so the simulation and benchmark remain usable on a clean
 build machine.
 
+## Run the interactive viewer
+
+```powershell
+.\build\release\rushgrid_app.exe
+```
+
+Controls:
+
+| Key | Action |
+|---|---|
+| `Space` | Pause/resume |
+| `1`, `2` | Open or close each fare gate |
+| `B` | Switch baseline/optimized and reset |
+| `+`, `-` | Double/halve agents (1,000–50,000) |
+| `[`, `]` | Remove/add a worker and reset |
+| `G` | Spatial-grid overlay |
+| `H` | Occupancy heatmap |
+| `F` | Goal-zero flow vectors |
+| `R` | Reset the seeded scenario |
+| `Esc` | Quit |
+
+The native Windows viewer renders the published snapshot into a top-down DIB
+backbuffer and shows live current/p50/p95/p99 tick time. Its rendering cost is
+outside simulation timings.
+
 ## Run the technical demo
 
 ```powershell
@@ -133,8 +158,7 @@ More detail:
 
 ## Current scope
 
-The repository delivers the simulation, benchmark, tests, deterministic dynamic
-incident, debug snapshot, raw evidence, and technical documentation. A real-time
-SDL/native window, editable barrier UI, detailed per-zone timeline, and
-packaged Windows release remain presentation-layer work. They are intentionally
-separated from the proven headless core.
+The repository delivers the simulation, interactive Windows viewer, benchmark,
+tests, deterministic gate editing, overlays, debug snapshot, raw evidence, and
+technical documentation. A detailed per-zone worker timeline, arbitrary
+barrier painting, and packaged downloadable release remain presentation work.
