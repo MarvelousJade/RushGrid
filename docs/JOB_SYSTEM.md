@@ -57,5 +57,7 @@ through 100 consecutive Release test runs after the atomic-wait change.
 ## Instrumentation
 
 Atomic counters record jobs executed, jobs stolen, and maximum observed queue
-depth. `Simulation::tick()` snapshots them into `TickMetrics`. Worker
-utilization and a timestamped per-worker timeline are not implemented yet.
+depth. A preallocated scoped profiler records each steering/integration chunk
+with its thread lane and publishes a double-buffered event frame. The
+interactive viewer renders these events with `T`. Exact worker utilization is
+not reduced to one percentage because the caller also executes jobs.

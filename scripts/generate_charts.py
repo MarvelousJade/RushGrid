@@ -64,11 +64,13 @@ def write_entity_chart(rows: list[dict[str, str]], output: Path) -> None:
             row["implementation"] == "optimized"
             and row["workers"] == "5"
             and row["measured_ticks"] == "300"
+            and row.get("detailed_profiling", "false") == "false"
         )
         or (
             row["implementation"] == "baseline"
             and row["workers"] == "0"
             and row["measured_ticks"] == "300"
+            and row.get("detailed_profiling", "false") == "false"
         )
     ]
     means = mean_groups(selected, ("implementation", "agents"))
@@ -146,17 +148,22 @@ def write_worker_chart(rows: list[dict[str, str]], output: Path) -> None:
         if row["implementation"] == "optimized"
         and row["agents"] == "50000"
         and row["workers"] in {"0", "1", "3", "5", "11"}
+        and row.get("detailed_profiling", "false") == "false"
+        and (
+            (row["workers"] == "5" and row["measured_ticks"] == "300")
+            or (row["workers"] != "5" and row["measured_ticks"] == "180")
+        )
     ]
     means = mean_groups(selected, ("workers",))
     workers = [0, 1, 3, 5, 11]
-    maximum = 55.0
+    maximum = math.ceil(max(means.values()) * 1.15 / 10.0) * 10.0
     bar_slot = PLOT_WIDTH / len(workers)
     bar_width = bar_slot * 0.55
     svg = svg_start(
         "50,000-agent worker scaling",
         "Lower is better · caller helps while waiting",
     )
-    for value in range(0, 51, 10):
+    for value in range(0, int(maximum) + 1, 10):
         y = MARGIN_TOP + (1.0 - value / maximum) * PLOT_HEIGHT
         svg.append(
             f'<line x1="{MARGIN_LEFT}" y1="{y:.2f}" '

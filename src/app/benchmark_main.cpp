@@ -26,6 +26,7 @@ struct BenchmarkArguments {
     double warmupSeconds{1.0};
     double durationSeconds{5.0};
     std::size_t repeat{1};
+    bool detailedProfiling{};
     std::filesystem::path output{"artifacts/csv/run.csv"};
 };
 
@@ -61,6 +62,8 @@ struct BenchmarkArguments {
             arguments.durationSeconds = std::stod(require_value(argc, argv, index));
         } else if (option == "--repeat") {
             arguments.repeat = std::stoull(require_value(argc, argv, index));
+        } else if (option == "--detailed-profiling") {
+            arguments.detailedProfiling = true;
         } else if (option == "--output") {
             arguments.output = require_value(argc, argv, index);
         } else if (option == "--help") {
@@ -75,6 +78,7 @@ struct BenchmarkArguments {
                 << "  --warmup-seconds N         Simulated seconds before capture\n"
                 << "  --duration-seconds N       Simulated seconds measured\n"
                 << "  --repeat N                 Independent repeated runs\n"
+                << "  --detailed-profiling       Capture per-job timeline zones\n"
                 << "  --output FILE              Append raw summaries to CSV\n";
             std::exit(EXIT_SUCCESS);
         } else {
@@ -95,7 +99,8 @@ struct BenchmarkArguments {
 void write_csv_header(std::ofstream& stream) {
     stream
         << "scenario,implementation,agents,workers,seed,repeat,warmup_ticks,"
-           "measured_ticks,compiler,average_ms,p50_ms,p95_ms,p99_ms,min_ms,"
+           "measured_ticks,compiler,detailed_profiling,average_ms,p50_ms,"
+           "p95_ms,p99_ms,min_ms,"
            "max_ms,grid_average_ms,navigation_average_ms,steering_average_ms,"
            "integration_average_ms,agent_updates_per_second,total_arrivals,"
            "memory_bytes,state_hash\n";
@@ -133,7 +138,9 @@ int main(const int argc, char** argv) {
                 arguments.agents,
                 arguments.threads,
                 arguments.seed,
-                arguments.implementation});
+                arguments.implementation,
+                1.0F / 60.0F,
+                arguments.detailedProfiling});
             for (std::size_t tick = 0; tick < warmupTicks; ++tick) {
                 static_cast<void>(simulation.tick());
             }
@@ -170,6 +177,7 @@ int main(const int argc, char** argv) {
                 << warmupTicks << ','
                 << measuredTicks << ','
                 << rushgrid::compiler_name() << ','
+                << (arguments.detailedProfiling ? "true" : "false") << ','
                 << std::fixed << std::setprecision(6)
                 << averageMs << ','
                 << totalSamples.percentile(0.50) << ','
@@ -206,4 +214,3 @@ int main(const int argc, char** argv) {
         return EXIT_FAILURE;
     }
 }
-

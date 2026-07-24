@@ -67,6 +67,7 @@ Simulation::Simulation(SimulationConfig config)
       spatial_(96.0F, 54.0F, 2.0F, config.agentCount),
       jobs_(config.workerCount),
       flowFields_(2) {
+    profiler_.set_enabled(config_.detailedProfiling);
     build_scenario();
     spawn_agents();
     for (RenderSnapshot& snapshot : renderSnapshots_) {
@@ -166,8 +167,13 @@ double Simulation::rebuild_navigation_if_needed() {
 
 TickMetrics Simulation::tick() {
     const auto totalStart = Clock::now();
+    profiler_.begin_frame();
     jobs_.reset_stats();
-    const double navigationMs = rebuild_navigation_if_needed();
+    double navigationMs{};
+    {
+        auto profile = profiler_.scope("Navigation");
+        navigationMs = rebuild_navigation_if_needed();
+    }
 
     TickMetrics metrics = config_.implementation == Implementation::optimized
         ? tick_optimized()
@@ -178,7 +184,11 @@ TickMetrics Simulation::tick() {
     metrics.jobsStolen = jobStats.stolen;
     metrics.maximumJobQueueDepth = jobStats.maximumQueueDepth;
     ++tickIndex_;
-    publish_render_snapshot();
+    {
+        auto profile = profiler_.scope("Snapshot");
+        publish_render_snapshot();
+    }
+    profiler_.end_frame(tickIndex_);
     metrics.totalMs = elapsed_ms(totalStart);
     return metrics;
 }
@@ -187,128 +197,171 @@ TickMetrics Simulation::tick_optimized() {
     TickMetrics metrics{};
 
     auto sectionStart = Clock::now();
-    spatial_.build(agents_);
+    {
+        auto profile = profiler_.scope("Spatial grid");
+        spatial_.build(agents_);
+    }
     metrics.gridMs = elapsed_ms(sectionStart);
     metrics.maximumCellOccupancy = spatial_.maximum_occupancy();
 
     sectionStart = Clock::now();
-    jobs_.parallel_for(
-        agents_.size(),
-        256,
-        [this](const std::size_t begin, const std::size_t end) {
-            for (std::size_t index = begin; index < end; ++index) {
-                const Vec2 position{agents_.positionX[index], agents_.positionY[index]};
-                const Vec2 navigationDirection =
-                    flowFields_[agents_.goal[index]].sample(position, navigation_);
-
-                Vec2 separation{};
-                std::size_t considered = 0;
-                spatial_.for_each_nearby(
-                    position.x,
-                    position.y,
-                    1.25F,
-                    [this, index, position, &separation, &considered](
-                        const std::uint32_t otherIndex) {
-                        if (otherIndex == index || considered >= 48) {
-                            return;
-                        }
-                        ++considered;
-                        const Vec2 delta{
-                            position.x - agents_.positionX[otherIndex],
-                            position.y - agents_.positionY[otherIndex]};
-                        const float distanceSquared = length_squared(delta);
-                        const float personalSpace =
-                            agents_.radius[index] + agents_.radius[otherIndex] + 0.18F;
-                        if (distanceSquared >= personalSpace * personalSpace) {
-                            return;
-                        }
-                        if (distanceSquared <= 0.000001F) {
-                            const float sign = ((index ^ otherIndex) & 1U) == 0U
-                                ? 1.0F
-                                : -1.0F;
-                            separation += {sign, -sign};
-                            return;
-                        }
-                        const float distance = std::sqrt(distanceSquared);
-                        separation +=
-                            (delta * (1.0F / distance)) *
-                            ((personalSpace - distance) / personalSpace);
-                    });
-
-                const std::uint32_t occupancy = spatial_.occupancy(agents_.cell[index]);
-                const float densityScale = 1.0F /
-                    (1.0F + 0.035F * static_cast<float>(
-                        occupancy > 6 ? occupancy - 6 : 0));
-                Vec2 direction = normalized_or_zero(
-                    navigationDirection + separation * 1.65F);
-
-                const Vec2 lookAhead = position + direction * 0.8F;
-                if (!can_occupy(lookAhead)) {
-                    const Vec2 left{-navigationDirection.y, navigationDirection.x};
-                    const Vec2 right{navigationDirection.y, -navigationDirection.x};
-                    if (can_occupy(position + left * 0.8F)) {
-                        direction = normalized_or_zero(left + separation);
-                    } else if (can_occupy(position + right * 0.8F)) {
-                        direction = normalized_or_zero(right + separation);
-                    } else {
-                        direction = {};
-                    }
-                }
-
-                const Vec2 desired = direction * (agents_.maxSpeed[index] * densityScale);
-                agents_.desiredX[index] = desired.x;
-                agents_.desiredY[index] = desired.y;
-            }
-        });
+    {
+        auto profile = profiler_.scope("Steering");
+        jobs_.parallel_for(
+            agents_.size(),
+            256,
+            [this](const std::size_t begin, const std::size_t end) {
+                auto jobProfile = profiler_.scope("Steering job");
+                steer_range(begin, end);
+            });
+    }
     metrics.steeringMs = elapsed_ms(sectionStart);
 
     sectionStart = Clock::now();
-    jobs_.parallel_for(
-        agents_.size(),
-        512,
-        [this](const std::size_t begin, const std::size_t end) {
-            const float delta = config_.fixedDeltaSeconds;
-            const float maximumVelocityChange = 5.5F * delta;
-            for (std::size_t index = begin; index < end; ++index) {
-                Vec2 velocity{agents_.velocityX[index], agents_.velocityY[index]};
-                const Vec2 desired{agents_.desiredX[index], agents_.desiredY[index]};
-                velocity += clamp_length(desired - velocity, maximumVelocityChange);
-                velocity = clamp_length(velocity, agents_.maxSpeed[index]);
-
-                const Vec2 current{agents_.positionX[index], agents_.positionY[index]};
-                Vec2 next = navigation_.clamp_position(current + velocity * delta);
-                if (!can_occupy(next)) {
-                    const Vec2 xOnly{next.x, current.y};
-                    const Vec2 yOnly{current.x, next.y};
-                    if (can_occupy(xOnly)) {
-                        next = xOnly;
-                        velocity.y = 0.0F;
-                    } else if (can_occupy(yOnly)) {
-                        next = yOnly;
-                        velocity.x = 0.0F;
-                    } else {
-                        next = current;
-                        velocity = {};
-                    }
-                }
-
-                agents_.nextPositionX[index] = next.x;
-                agents_.nextPositionY[index] = next.y;
-                agents_.velocityX[index] = velocity.x;
-                agents_.velocityY[index] = velocity.y;
-            }
-        });
+    {
+        auto profile = profiler_.scope("Integration");
+        jobs_.parallel_for(
+            agents_.size(),
+            512,
+            [this](const std::size_t begin, const std::size_t end) {
+                auto jobProfile = profiler_.scope("Integration job");
+                integrate_range(begin, end);
+            });
+    }
     agents_.positionX.swap(agents_.nextPositionX);
     agents_.positionY.swap(agents_.nextPositionY);
-    metrics.arrivals = process_optimized_arrivals();
+    {
+        auto profile = profiler_.scope("Arrivals");
+        metrics.arrivals = process_optimized_arrivals();
+    }
     metrics.integrationMs = elapsed_ms(sectionStart);
     return metrics;
+}
+
+void Simulation::steer_range(
+    const std::size_t begin,
+    const std::size_t end) {
+    for (std::size_t index = begin; index < end; ++index) {
+        const Vec2 position{agents_.positionX[index], agents_.positionY[index]};
+        const Vec2 navigationDirection =
+            flowFields_[agents_.goal[index]].sample(position, navigation_);
+
+        Vec2 separation{};
+        std::size_t considered = 0;
+        spatial_.for_each_nearby(
+            position.x,
+            position.y,
+            1.25F,
+            [this, index, position, &separation, &considered](
+                const std::uint32_t otherIndex) {
+                if (otherIndex == index || considered >= 48) {
+                    return;
+                }
+                ++considered;
+                const Vec2 delta{
+                    position.x - agents_.positionX[otherIndex],
+                    position.y - agents_.positionY[otherIndex]};
+                const float distanceSquared = length_squared(delta);
+                const float personalSpace =
+                    agents_.radius[index] + agents_.radius[otherIndex] + 0.18F;
+                if (distanceSquared >= personalSpace * personalSpace) {
+                    return;
+                }
+                if (distanceSquared <= 0.000001F) {
+                    const float sign = ((index ^ otherIndex) & 1U) == 0U
+                        ? 1.0F
+                        : -1.0F;
+                    separation += {sign, -sign};
+                    return;
+                }
+                const float distance = std::sqrt(distanceSquared);
+                separation +=
+                    (delta * (1.0F / distance)) *
+                    ((personalSpace - distance) / personalSpace);
+            });
+
+        const std::uint32_t occupancy = spatial_.occupancy(agents_.cell[index]);
+        const float densityScale = 1.0F /
+            (1.0F + 0.035F * static_cast<float>(
+                occupancy > 6 ? occupancy - 6 : 0));
+        Vec2 direction = normalized_or_zero(
+            navigationDirection + separation * 1.65F);
+
+        const Vec2 lookAhead = position + direction * 0.8F;
+        if (!can_occupy(lookAhead)) {
+            const Vec2 left{-navigationDirection.y, navigationDirection.x};
+            const Vec2 right{navigationDirection.y, -navigationDirection.x};
+            if (can_occupy(position + left * 0.8F)) {
+                direction = normalized_or_zero(left + separation);
+            } else if (can_occupy(position + right * 0.8F)) {
+                direction = normalized_or_zero(right + separation);
+            } else {
+                direction = {};
+            }
+        }
+
+        const Vec2 desired =
+            direction * (agents_.maxSpeed[index] * densityScale);
+        agents_.desiredX[index] = desired.x;
+        agents_.desiredY[index] = desired.y;
+    }
+}
+
+void Simulation::integrate_range(
+    const std::size_t begin,
+    const std::size_t end) {
+    const float delta = config_.fixedDeltaSeconds;
+    const float maximumVelocityChange = 5.5F * delta;
+    for (std::size_t index = begin; index < end; ++index) {
+        Vec2 velocity{agents_.velocityX[index], agents_.velocityY[index]};
+        const Vec2 desired{agents_.desiredX[index], agents_.desiredY[index]};
+        velocity += clamp_length(desired - velocity, maximumVelocityChange);
+        velocity = clamp_length(velocity, agents_.maxSpeed[index]);
+
+        const Vec2 current{agents_.positionX[index], agents_.positionY[index]};
+        Vec2 next = navigation_.clamp_position(current + velocity * delta);
+        if (!can_occupy(next)) {
+            const Vec2 xOnly{next.x, current.y};
+            const Vec2 yOnly{current.x, next.y};
+            if (can_occupy(xOnly)) {
+                next = xOnly;
+                velocity.y = 0.0F;
+            } else if (can_occupy(yOnly)) {
+                next = yOnly;
+                velocity.x = 0.0F;
+            } else {
+                next = current;
+                velocity = {};
+            }
+        }
+
+        agents_.nextPositionX[index] = next.x;
+        agents_.nextPositionY[index] = next.y;
+        agents_.velocityX[index] = velocity.x;
+        agents_.velocityY[index] = velocity.y;
+    }
 }
 
 TickMetrics Simulation::tick_baseline() {
     TickMetrics metrics{};
     const auto steeringStart = Clock::now();
+    {
+        auto profile = profiler_.scope("Baseline steering");
+        steer_baseline();
+    }
+    metrics.steeringMs = elapsed_ms(steeringStart);
 
+    const auto integrationStart = Clock::now();
+    {
+        auto profile = profiler_.scope("Baseline integration");
+        integrate_baseline();
+        metrics.arrivals = process_baseline_arrivals();
+    }
+    metrics.integrationMs = elapsed_ms(integrationStart);
+    return metrics;
+}
+
+void Simulation::steer_baseline() {
     for (std::size_t index = 0; index < baselineAgents_.size(); ++index) {
         BaselineAgent& agent = baselineAgents_[index];
         if (((tickIndex_ + index) % 30U) == 0U ||
@@ -344,9 +397,9 @@ TickMetrics Simulation::tick_baseline() {
             agent.nextWaypointDirection + separation * 1.65F);
         agent.desired = direction * agent.maxSpeed;
     }
-    metrics.steeringMs = elapsed_ms(steeringStart);
+}
 
-    const auto integrationStart = Clock::now();
+void Simulation::integrate_baseline() {
     const float delta = config_.fixedDeltaSeconds;
     for (std::size_t index = 0; index < baselineAgents_.size(); ++index) {
         BaselineAgent& agent = baselineAgents_[index];
@@ -363,9 +416,6 @@ TickMetrics Simulation::tick_baseline() {
     for (std::size_t index = 0; index < baselineAgents_.size(); ++index) {
         baselineAgents_[index].position = baselineNextPositions_[index];
     }
-    metrics.arrivals = process_baseline_arrivals();
-    metrics.integrationMs = elapsed_ms(integrationStart);
-    return metrics;
 }
 
 std::uint32_t Simulation::process_optimized_arrivals() {

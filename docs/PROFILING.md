@@ -22,13 +22,13 @@ cost outside the reported total.
 
 | Agents | Implementation | Workers | Mean average | Mean p95 |
 |---:|---|---:|---:|---:|
-| 1,000 | optimized | 5 | 0.131 ms | 0.160 ms |
-| 5,000 | optimized | 5 | 0.457 ms | 0.537 ms |
-| 10,000 | optimized | 5 | 1.003 ms | 1.185 ms |
-| 25,000 | optimized | 5 | 3.418 ms | 4.241 ms |
-| 50,000 | optimized | 5 | 10.540 ms | 11.699 ms |
-| 1,000 | baseline | 0 | 8.564 ms | 12.777 ms |
-| 5,000 | baseline | 0 | 89.715 ms | 109.449 ms |
+| 1,000 | optimized | 5 | 0.138 ms | 0.174 ms |
+| 5,000 | optimized | 5 | 0.500 ms | 0.603 ms |
+| 10,000 | optimized | 5 | 1.083 ms | 1.302 ms |
+| 25,000 | optimized | 5 | 4.148 ms | 4.784 ms |
+| 50,000 | optimized | 5 | 13.173 ms | 14.598 ms |
+| 1,000 | baseline | 0 | 7.888 ms | 11.829 ms |
+| 5,000 | baseline | 0 | 80.691 ms | 100.733 ms |
 
 No result is extrapolated. Larger baseline counts were not included in the
 five-second repeated capture because all-pairs work makes them intentionally
@@ -40,11 +40,11 @@ The scaling rows use 180 measured ticks and three repeats:
 
 | Workers | Effective participants | Mean tick | Speedup vs 0 |
 |---:|---:|---:|---:|
-| 0 | caller only | 46.912 ms | 1.00× |
-| 1 | caller + 1 worker | 30.653 ms | 1.53× |
-| 3 | caller + 3 workers | 16.261 ms | 2.88× |
-| 5 | caller + 5 workers | 10.540 ms | 4.45× |
-| 11 | caller + 11 workers | 8.666 ms | 5.41× |
+| 0 | caller only | 57.458 ms | 1.00× |
+| 1 | caller + 1 worker | 33.112 ms | 1.74× |
+| 3 | caller + 3 workers | 17.196 ms | 3.34× |
+| 5 | caller + 5 workers | 13.173 ms | 4.36× |
+| 11 | caller + 11 workers | 8.810 ms | 6.52× |
 
 ![Worker scaling](../artifacts/charts/worker_scaling.svg)
 
@@ -73,12 +73,30 @@ Use a quiet machine and avoid running configurations concurrently. Raw rows
 contain average, p50, p95, p99, minimum, maximum, per-system averages, updates
 per second, arrivals, reserved bytes, and final state hash.
 
+## Live scoped profiler
+
+Each tick writes timestamped zones into the unpublished half of a 4,096-event
+buffer. Main-thread zones cover navigation, grid build, steering, integration,
+arrivals, and snapshot publication. Every parallel chunk records its own
+steering or integration zone and thread lane. Completion publishes the buffer
+with release/acquire ordering; the viewer's `T` overlay consumes only that
+immutable frame. Overflow increments a dropped-event counter instead of
+allocating.
+
+Detailed zones are enabled in the interactive viewer and disabled by default in
+the headless benchmark. Pass `--detailed-profiling` to measure their overhead
+on the same scenario and hardware. Coarse `TickMetrics` and CSV system timings
+remain active in either mode, and every CSV row records the profiling mode.
+In the checked-in paired 50,000-agent, five-worker capture, detailed profiling
+changed mean tick time from 13.173 ms to 13.257 ms (+0.64%); mean p95 was
+14.598 ms without zones and 14.581 ms with zones, which is within run noise.
+
 ## Interpretation limits
 
 - The checked-in capture is short enough for repository verification, not a
   substitute for a dedicated lab run.
 - Process RSS and total allocator activity are not measured.
-- Navigation rebuild time is coarse wall-clock timing, not a scoped event trace.
+- Profiler timestamps are wall-clock CPU zones, not hardware performance counters.
 - Baseline and optimized floating-point trajectories are not expected to match;
   determinism is checked within an implementation across worker counts.
 - Worker counts include persistent workers only; the waiting caller also helps.

@@ -110,6 +110,7 @@ struct ViewerState {
     bool showGrid{};
     bool showHeatmap{true};
     bool showFlow{};
+    bool showTimeline{};
     bool gateOpen[2]{true, true};
     std::uint64_t autoExitTicks{};
 
@@ -290,6 +291,63 @@ void draw_world(ViewerState& state) {
         fill_rectangle(buffer, x - 1, y - 1, x + 2, y + 2, agentColor);
     }
 
+    if (state.showTimeline) {
+        const std::span<const rushgrid::ProfileEvent> events =
+            state.simulation->profile_events();
+        std::vector<std::uint32_t> lanes;
+        lanes.reserve(events.size());
+        std::uint32_t endMicroseconds{1};
+        for (const rushgrid::ProfileEvent& event : events) {
+            lanes.push_back(event.lane);
+            endMicroseconds = std::max(
+                endMicroseconds,
+                event.startMicroseconds + event.durationMicroseconds);
+        }
+        std::sort(lanes.begin(), lanes.end());
+        lanes.erase(std::unique(lanes.begin(), lanes.end()), lanes.end());
+
+        const int panelLeft = 12;
+        const int panelRight = buffer.width - 12;
+        const int panelBottom = buffer.height - 34;
+        const int panelTop = std::max(
+            54,
+            panelBottom - 18 - static_cast<int>(lanes.size()) * 14);
+        fill_rectangle(
+            buffer,
+            panelLeft,
+            panelTop,
+            panelRight,
+            panelBottom,
+            color(8, 14, 20));
+        const int timelineLeft = panelLeft + 72;
+        const int timelineWidth = std::max(1, panelRight - timelineLeft - 8);
+        for (const rushgrid::ProfileEvent& event : events) {
+            const auto laneIterator =
+                std::lower_bound(lanes.begin(), lanes.end(), event.lane);
+            const int laneIndex = static_cast<int>(
+                std::distance(lanes.begin(), laneIterator));
+            const int top = panelTop + 8 + laneIndex * 14;
+            const int left = timelineLeft + static_cast<int>(
+                static_cast<std::uint64_t>(event.startMicroseconds) *
+                timelineWidth / endMicroseconds);
+            const int width = std::max(
+                2,
+                static_cast<int>(
+                    static_cast<std::uint64_t>(event.durationMicroseconds) *
+                    timelineWidth / endMicroseconds));
+            std::uint32_t nameHash = 2166136261U;
+            for (const char* cursor = event.name; *cursor != '\0'; ++cursor) {
+                nameHash ^= static_cast<std::uint8_t>(*cursor);
+                nameHash *= 16777619U;
+            }
+            const Pixel eventColor = color(
+                static_cast<std::uint8_t>(90 + nameHash % 150),
+                static_cast<std::uint8_t>(100 + (nameHash >> 4U) % 130),
+                static_cast<std::uint8_t>(120 + (nameHash >> 8U) % 120));
+            fill_rectangle(buffer, left, top, left + width, top + 10, eventColor);
+        }
+    }
+
     SetBkMode(buffer.deviceContext, TRANSPARENT);
     SetTextColor(buffer.deviceContext, RGB(225, 235, 245));
     char metrics[384]{};
@@ -317,7 +375,7 @@ void draw_world(ViewerState& state) {
 
     const char help[] =
         "Space pause | 1/2 gates | B baseline/optimized | +/- agents | "
-        "[/] workers | G grid | H heat | F flow | R reset | Esc quit";
+        "[/] workers | G grid | H heat | F flow | T timeline | R reset | Esc quit";
     TextOutA(
         buffer.deviceContext,
         12,
@@ -410,6 +468,9 @@ void handle_key(ViewerState& state, const WPARAM key) {
     case 'F':
         state.showFlow = !state.showFlow;
         break;
+    case 'T':
+        state.showTimeline = !state.showTimeline;
+        break;
     case 'R':
         state.reset();
         break;
@@ -489,6 +550,10 @@ int WINAPI WinMain(
         const std::string commandLineText =
             commandLine != nullptr ? commandLine : "";
         state.autoExitTicks = parse_auto_exit(commandLineText);
+        state.showTimeline =
+            commandLineText.find("--timeline") != std::string::npos;
+        state.showFlow = commandLineText.find("--flow") != std::string::npos;
+        state.showGrid = commandLineText.find("--grid") != std::string::npos;
         state.reset();
 
         WNDCLASSA windowClass{};

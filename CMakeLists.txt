@@ -16,6 +16,7 @@ add_library(rushgrid_core
     src/simulation/agent_storage.cpp
     src/simulation/simulation.cpp
     src/spatial/spatial_grid.cpp
+    src/telemetry/profiler.cpp
     src/telemetry/statistics.cpp
     src/visualization/debug_image.cpp
 )
@@ -40,9 +41,47 @@ if(WIN32)
     target_link_libraries(rushgrid_app PRIVATE rushgrid_core user32 gdi32)
 endif()
 
+if(MINGW)
+    target_link_options(rushgrid_demo PRIVATE -static -static-libgcc -static-libstdc++)
+    target_link_options(
+        rushgrid_benchmark PRIVATE -static -static-libgcc -static-libstdc++)
+    if(TARGET rushgrid_app)
+        target_link_options(
+            rushgrid_app PRIVATE -static -static-libgcc -static-libstdc++)
+    endif()
+endif()
+
 if(RUSHGRID_BUILD_TESTS)
     enable_testing()
     add_executable(rushgrid_tests tests/rushgrid_tests.cpp)
     target_link_libraries(rushgrid_tests PRIVATE rushgrid_core)
     add_test(NAME rushgrid_tests COMMAND rushgrid_tests)
 endif()
+
+install(TARGETS rushgrid_demo rushgrid_benchmark RUNTIME DESTINATION .)
+if(TARGET rushgrid_app)
+    install(TARGETS rushgrid_app RUNTIME DESTINATION .)
+endif()
+install(FILES README.md DESTINATION .)
+install(DIRECTORY assets docs DESTINATION .)
+install(
+    FILES
+        artifacts/csv/sample.csv
+    DESTINATION artifacts/csv)
+install(
+    FILES
+        artifacts/charts/entity_scaling.svg
+        artifacts/charts/worker_scaling.svg
+    DESTINATION artifacts/charts)
+install(
+    FILES
+        artifacts/screenshots/rushgrid_10000.png
+    DESTINATION artifacts/screenshots)
+
+set(CPACK_GENERATOR ZIP)
+set(CPACK_PACKAGE_NAME RushGrid)
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_FILE_NAME "RushGrid-${PROJECT_VERSION}-windows-x64")
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_SOURCE_DIR}/out")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+include(CPack)

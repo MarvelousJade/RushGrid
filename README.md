@@ -14,13 +14,13 @@ Windows build 26200:
 
 | Configuration | Workers | Average tick | p95 tick | Updates/s |
 |---|---:|---:|---:|---:|
-| Optimized, 10,000 agents | 5 | 1.003 ms | 1.185 ms | 9.97 M |
-| Optimized, 25,000 agents | 5 | 3.418 ms | 4.241 ms | 7.32 M |
-| Optimized, 50,000 agents | 5 | 10.540 ms | 11.699 ms | 4.74 M |
-| Optimized, 50,000 agents | 11 | 8.666 ms | 10.605 ms | 5.77 M |
-| Baseline, 5,000 agents | 0 | 89.715 ms | 109.449 ms | 55.7 K |
+| Optimized, 10,000 agents | 5 | 1.083 ms | 1.302 ms | 9.23 M |
+| Optimized, 25,000 agents | 5 | 4.148 ms | 4.784 ms | 6.03 M |
+| Optimized, 50,000 agents | 5 | 13.173 ms | 14.598 ms | 3.80 M |
+| Optimized, 50,000 agents | 11 | 8.810 ms | 10.472 ms | 5.68 M |
+| Baseline, 5,000 agents | 0 | 80.691 ms | 100.733 ms | 62.0 K |
 
-At 5,000 agents, the full optimized path averaged **196× faster** than the
+At 5,000 agents, the full optimized path averaged **161× faster** than the
 retained AoS/all-pairs/per-agent-A* baseline. This is an end-to-end comparison:
 it intentionally includes the layout, algorithm, and threading changes rather
 than attributing the result to one optimization.
@@ -52,6 +52,14 @@ The project has no runtime or test-framework dependency. Visual output is a
 portable PPM image, so the simulation and benchmark remain usable on a clean
 build machine.
 
+To create a self-contained Windows ZIP with statically linked MinGW runtimes:
+
+```powershell
+cmake --build --preset release --target package
+```
+
+The archive is written to `out/RushGrid-0.1.0-windows-x64.zip`.
+
 ## Run the interactive viewer
 
 ```powershell
@@ -70,6 +78,7 @@ Controls:
 | `G` | Spatial-grid overlay |
 | `H` | Occupancy heatmap |
 | `F` | Goal-zero flow vectors |
+| `T` | Scoped main/worker timeline |
 | `R` | Reset the seeded scenario |
 | `Esc` | Quit |
 
@@ -105,13 +114,15 @@ deliberately expensive; start at 1,000 agents.
   --implementation optimized `
   --seed 1337 `
   --warmup-seconds 5 `
-  --duration-seconds 30 `
-  --repeat 3 `
-  --output artifacts\csv\run.csv
+      --duration-seconds 30 `
+      --repeat 3 `
+      --output artifacts\csv\run.csv
 ```
 
 `--threads 0` selects the single-threaded optimized path. Worker counts exclude
 the caller, which helps execute queued work while it waits.
+Add `--detailed-profiling` to capture per-job timeline zones; it is disabled by
+default in benchmarks so instrumentation does not silently alter comparisons.
 
 ## Engineering highlights
 
@@ -126,6 +137,7 @@ the caller, which helps execute queued work while it waits.
 - Parallel steering and integration with disjoint output ranges
 - Double-buffered immutable render snapshots
 - Fixed-capacity sample windows and CSV export
+- Preallocated scoped profiler with per-worker timeline events
 - Deterministic seed, fixed step, stable ownership, and state hash
 
 ## Architecture
@@ -160,5 +172,6 @@ More detail:
 
 The repository delivers the simulation, interactive Windows viewer, benchmark,
 tests, deterministic gate editing, overlays, debug snapshot, raw evidence, and
-technical documentation. A detailed per-zone worker timeline, arbitrary
-barrier painting, and packaged downloadable release remain presentation work.
+technical documentation, scoped worker timeline, and self-contained Windows
+package. Arbitrary barrier painting and a graphical scenario editor remain
+presentation work.

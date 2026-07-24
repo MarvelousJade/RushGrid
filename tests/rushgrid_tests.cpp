@@ -153,6 +153,35 @@ void test_gate_closure_keeps_agents_walkable() {
     }
 }
 
+void test_profiler_publishes_worker_zones() {
+    rushgrid::Simulation simulation({
+        2048,
+        3,
+        11,
+        rushgrid::Implementation::optimized});
+    static_cast<void>(simulation.tick());
+    const std::span<const rushgrid::ProfileEvent> events =
+        simulation.profile_events();
+    expect(!events.empty(), "profile frame should contain events");
+    expect(simulation.profile_tick() == simulation.tick_index(),
+           "profile frame should identify its source tick");
+
+    bool foundSteering{};
+    bool foundIntegration{};
+    bool foundWorkerJob{};
+    for (const rushgrid::ProfileEvent& event : events) {
+        const std::string name = event.name;
+        foundSteering = foundSteering || name == "Steering";
+        foundIntegration = foundIntegration || name == "Integration";
+        foundWorkerJob = foundWorkerJob || name == "Steering job";
+    }
+    expect(foundSteering, "profiler should record steering phase");
+    expect(foundIntegration, "profiler should record integration phase");
+    expect(foundWorkerJob, "profiler should record worker jobs");
+    expect(simulation.dropped_profile_events() == 0,
+           "normal tick should fit in the preallocated event buffer");
+}
+
 } // namespace
 
 int main() {
@@ -164,6 +193,7 @@ int main() {
         {"ring statistics", test_statistics},
         {"thread-count determinism", test_thread_count_determinism},
         {"safe gate closure", test_gate_closure_keeps_agents_walkable},
+        {"scoped profiler", test_profiler_publishes_worker_zones},
     };
 
     std::size_t failures{};

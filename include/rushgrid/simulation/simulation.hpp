@@ -5,6 +5,7 @@
 #include "rushgrid/navigation/navigation.hpp"
 #include "rushgrid/simulation/agent_storage.hpp"
 #include "rushgrid/spatial/spatial_grid.hpp"
+#include "rushgrid/telemetry/profiler.hpp"
 #include "rushgrid/telemetry/statistics.hpp"
 
 #include <cstddef>
@@ -31,6 +32,7 @@ struct SimulationConfig {
     std::uint32_t seed{1337};
     Implementation implementation{Implementation::optimized};
     float fixedDeltaSeconds{1.0F / 60.0F};
+    bool detailedProfiling{true};
 };
 
 struct BaselineAgent {
@@ -74,6 +76,15 @@ public:
     [[nodiscard]] const RenderSnapshot& render_snapshot() const noexcept {
         return renderSnapshots_[publishedSnapshot_.load(std::memory_order_acquire)];
     }
+    [[nodiscard]] std::span<const ProfileEvent> profile_events() const noexcept {
+        return profiler_.events();
+    }
+    [[nodiscard]] std::uint64_t profile_tick() const noexcept {
+        return profiler_.published_tick();
+    }
+    [[nodiscard]] std::uint64_t dropped_profile_events() const noexcept {
+        return profiler_.dropped_events();
+    }
     [[nodiscard]] std::uint64_t tick_index() const noexcept { return tickIndex_; }
     [[nodiscard]] std::uint64_t total_arrivals() const noexcept { return totalArrivals_; }
     [[nodiscard]] std::uint64_t state_hash() const noexcept;
@@ -95,6 +106,7 @@ private:
     bool gateOpen_[2]{true, true};
     std::array<RenderSnapshot, 2> renderSnapshots_;
     std::atomic<std::uint32_t> publishedSnapshot_{0};
+    Profiler profiler_;
 
     void build_scenario();
     void spawn_agents();
@@ -103,6 +115,10 @@ private:
     double rebuild_navigation_if_needed();
     TickMetrics tick_optimized();
     TickMetrics tick_baseline();
+    void steer_range(std::size_t begin, std::size_t end);
+    void integrate_range(std::size_t begin, std::size_t end);
+    void steer_baseline();
+    void integrate_baseline();
     std::uint32_t process_optimized_arrivals();
     std::uint32_t process_baseline_arrivals();
     [[nodiscard]] Vec2 respawn_position(std::size_t agentIndex) const noexcept;

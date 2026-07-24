@@ -63,8 +63,9 @@ reproducible.
 `Simulation::memory_bytes()` reports reserved agent, grid, baseline, and both
 render-snapshot buffers. In the checked-in 50,000-agent optimized capture it
 reports 5,215,556 bytes. It does not attempt to include allocator bookkeeping,
-thread stacks, executable image pages, or temporary navigation rebuild storage,
-so it is a component-reservation metric rather than process RSS.
+thread stacks, profiler event buffers, executable image pages, or temporary
+navigation rebuild storage, so it is a component-reservation metric rather than
+process RSS.
 
 No per-agent containers grow during a tick. Job submission still uses
 `std::function`, so a standard library may allocate small task wrappers; a

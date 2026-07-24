@@ -16,17 +16,17 @@
 <text x="508.00" y="498" text-anchor="middle" class="axis">10k</text>
 <text x="716.00" y="498" text-anchor="middle" class="axis">25k</text>
 <text x="924.00" y="498" text-anchor="middle" class="axis">50k</text>
-<polyline points="92.00,446.36 300.00,374.42 508.00,329.19 716.00,258.52 924.00,193.64" class="line" stroke="#46c2ff"/>
-<circle cx="92.00" cy="446.36" r="6" fill="#46c2ff"/>
-<circle cx="300.00" cy="374.42" r="6" fill="#46c2ff"/>
-<circle cx="508.00" cy="329.19" r="6" fill="#46c2ff"/>
-<circle cx="716.00" cy="258.52" r="6" fill="#46c2ff"/>
-<circle cx="924.00" cy="193.64" r="6" fill="#46c2ff"/>
+<polyline points="92.00,443.60 300.00,369.22 508.00,324.72 716.00,247.37 924.00,180.79" class="line" stroke="#46c2ff"/>
+<circle cx="92.00" cy="443.60" r="6" fill="#46c2ff"/>
+<circle cx="300.00" cy="369.22" r="6" fill="#46c2ff"/>
+<circle cx="508.00" cy="324.72" r="6" fill="#46c2ff"/>
+<circle cx="716.00" cy="247.37" r="6" fill="#46c2ff"/>
+<circle cx="924.00" cy="180.79" r="6" fill="#46c2ff"/>
 <line x1="710" y1="88" x2="744" y2="88" stroke="#46c2ff" stroke-width="4"/>
 <text x="754" y="93" class="axis">Optimized</text>
-<polyline points="92.00,205.60 300.00,70.25" class="line" stroke="#ffb347"/>
-<circle cx="92.00" cy="205.60" r="6" fill="#ffb347"/>
-<circle cx="300.00" cy="70.25" r="6" fill="#ffb347"/>
+<polyline points="92.00,210.33 300.00,76.36" class="line" stroke="#ffb347"/>
+<circle cx="92.00" cy="210.33" r="6" fill="#ffb347"/>
+<circle cx="300.00" cy="76.36" r="6" fill="#ffb347"/>
 <line x1="710" y1="114" x2="744" y2="114" stroke="#ffb347" stroke-width="4"/>
 <text x="754" y="119" class="axis">Baseline</text>
 <text x="508.00" y="526" text-anchor="middle" class="axis">Active agents</text>
