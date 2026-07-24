@@ -89,29 +89,16 @@ void write_debug_ppm(
         }
     }
 
-    if (simulation.config().implementation == Implementation::optimized) {
-        const AgentStorage& agents = simulation.agents();
-        for (std::size_t index = 0; index < agents.size(); ++index) {
-            draw_agent(
-                pixels,
-                width,
-                height,
-                agents.positionX[index],
-                agents.positionY[index],
-                agents.goal[index],
-                scale);
-        }
-    } else {
-        for (const BaselineAgent& agent : simulation.baseline_agents()) {
-            draw_agent(
-                pixels,
-                width,
-                height,
-                agent.position.x,
-                agent.position.y,
-                agent.goal,
-                scale);
-        }
+    const RenderSnapshot& snapshot = simulation.render_snapshot();
+    for (std::size_t index = 0; index < snapshot.size(); ++index) {
+        draw_agent(
+            pixels,
+            width,
+            height,
+            snapshot.positionX[index],
+            snapshot.positionY[index],
+            snapshot.goal[index],
+            scale);
     }
 
     if (!output.parent_path().empty()) {

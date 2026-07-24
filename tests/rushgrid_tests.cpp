@@ -127,6 +127,30 @@ void test_thread_count_determinism() {
     }
     expect(single.state_hash() == parallel.state_hash(),
            "optimized state should be stable across worker counts");
+    expect(parallel.render_snapshot().tick == parallel.tick_index(),
+           "published render snapshot should be current");
+    expect(parallel.render_snapshot().size() == parallel.config().agentCount,
+           "render snapshot should contain every agent");
+}
+
+void test_gate_closure_keeps_agents_walkable() {
+    rushgrid::Simulation simulation({
+        512,
+        2,
+        7,
+        rushgrid::Implementation::optimized});
+    simulation.set_gate_open(0, false);
+    for (int tick = 0; tick < 120; ++tick) {
+        static_cast<void>(simulation.tick());
+    }
+    const rushgrid::NavigationGrid& navigation = simulation.navigation_grid();
+    const rushgrid::RenderSnapshot& snapshot = simulation.render_snapshot();
+    for (std::size_t index = 0; index < snapshot.size(); ++index) {
+        expect(
+            navigation.is_walkable(
+                navigation.cell_at({snapshot.positionX[index], snapshot.positionY[index]})),
+            "agents must not occupy blocked cells after a gate command");
+    }
 }
 
 } // namespace
@@ -139,6 +163,7 @@ int main() {
         {"job system parallel coverage", test_job_system_parallel_coverage},
         {"ring statistics", test_statistics},
         {"thread-count determinism", test_thread_count_determinism},
+        {"safe gate closure", test_gate_closure_keeps_agents_walkable},
     };
 
     std::size_t failures{};

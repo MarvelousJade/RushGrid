@@ -9,6 +9,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <array>
+#include <atomic>
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -41,6 +43,18 @@ struct BaselineAgent {
     std::uint8_t goal{};
 };
 
+struct RenderSnapshot {
+    std::vector<float> positionX;
+    std::vector<float> positionY;
+    std::vector<float> velocityX;
+    std::vector<float> velocityY;
+    std::vector<std::uint8_t> goal;
+    std::uint64_t tick{};
+
+    void reserve(std::size_t capacity);
+    [[nodiscard]] std::size_t size() const noexcept { return positionX.size(); }
+};
+
 class Simulation {
 public:
     explicit Simulation(SimulationConfig config);
@@ -56,6 +70,9 @@ public:
     }
     [[nodiscard]] const std::vector<FlowField>& flow_fields() const noexcept {
         return flowFields_;
+    }
+    [[nodiscard]] const RenderSnapshot& render_snapshot() const noexcept {
+        return renderSnapshots_[publishedSnapshot_.load(std::memory_order_acquire)];
     }
     [[nodiscard]] std::uint64_t tick_index() const noexcept { return tickIndex_; }
     [[nodiscard]] std::uint64_t total_arrivals() const noexcept { return totalArrivals_; }
@@ -76,9 +93,13 @@ private:
     std::uint64_t totalArrivals_{};
     bool navigationDirty_{true};
     bool gateOpen_[2]{true, true};
+    std::array<RenderSnapshot, 2> renderSnapshots_;
+    std::atomic<std::uint32_t> publishedSnapshot_{0};
 
     void build_scenario();
     void spawn_agents();
+    void publish_render_snapshot();
+    void evacuate_closing_gate(std::size_t gateIndex);
     double rebuild_navigation_if_needed();
     TickMetrics tick_optimized();
     TickMetrics tick_baseline();
@@ -89,4 +110,3 @@ private:
 };
 
 } // namespace rushgrid
-

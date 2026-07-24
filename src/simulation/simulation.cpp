@@ -52,6 +52,14 @@ Implementation parse_implementation(const std::string_view value) {
         std::string(value) + "'");
 }
 
+void RenderSnapshot::reserve(const std::size_t capacity) {
+    positionX.reserve(capacity);
+    positionY.reserve(capacity);
+    velocityX.reserve(capacity);
+    velocityY.reserve(capacity);
+    goal.reserve(capacity);
+}
+
 Simulation::Simulation(SimulationConfig config)
     : config_(config),
       navigation_(96, 54, 1.0F),
@@ -61,6 +69,10 @@ Simulation::Simulation(SimulationConfig config)
       flowFields_(2) {
     build_scenario();
     spawn_agents();
+    for (RenderSnapshot& snapshot : renderSnapshots_) {
+        snapshot.reserve(config_.agentCount);
+    }
+    publish_render_snapshot();
 }
 
 void Simulation::build_scenario() {
@@ -161,11 +173,13 @@ TickMetrics Simulation::tick() {
         ? tick_optimized()
         : tick_baseline();
     metrics.navigationMs = navigationMs;
-    metrics.totalMs = elapsed_ms(totalStart);
     const JobSystemStats jobStats = jobs_.stats();
     metrics.jobsExecuted = jobStats.executed;
     metrics.jobsStolen = jobStats.stolen;
+    metrics.maximumJobQueueDepth = jobStats.maximumQueueDepth;
     ++tickIndex_;
+    publish_render_snapshot();
+    metrics.totalMs = elapsed_ms(totalStart);
     return metrics;
 }
 
@@ -413,6 +427,9 @@ void Simulation::set_gate_open(const std::size_t gateIndex, const bool open) {
     if (gateIndex >= 2 || gateOpen_[gateIndex] == open) {
         return;
     }
+    if (!open) {
+        evacuate_closing_gate(gateIndex);
+    }
     gateOpen_[gateIndex] = open;
     const int startY = gateIndex == 0 ? 9 : 39;
     const int endY = gateIndex == 0 ? 14 : 44;
@@ -420,6 +437,90 @@ void Simulation::set_gate_open(const std::size_t gateIndex, const bool open) {
         navigation_.set_walkable(68, y, open);
     }
     navigationDirty_ = true;
+}
+
+void Simulation::evacuate_closing_gate(const std::size_t gateIndex) {
+    const int startY = gateIndex == 0 ? 9 : 39;
+    const int endY = gateIndex == 0 ? 14 : 44;
+
+    const auto occupiesGate = [startY, endY](const Vec2 position) {
+        const int cellX = static_cast<int>(std::floor(position.x));
+        const int cellY = static_cast<int>(std::floor(position.y));
+        return cellX == 68 && cellY >= startY && cellY <= endY;
+    };
+    const auto safeSide = [](const Vec2 position, const Vec2 velocity) {
+        const bool passedGate = velocity.x >= 0.0F || position.x >= 68.5F;
+        return Vec2{passedGate ? 69.05F : 67.95F, position.y};
+    };
+
+    if (config_.implementation == Implementation::optimized) {
+        for (std::size_t index = 0; index < agents_.size(); ++index) {
+            const Vec2 position{agents_.positionX[index], agents_.positionY[index]};
+            if (!occupiesGate(position)) {
+                continue;
+            }
+            const Vec2 next = safeSide(
+                position,
+                {agents_.velocityX[index], agents_.velocityY[index]});
+            agents_.positionX[index] = next.x;
+            agents_.positionY[index] = next.y;
+            agents_.nextPositionX[index] = next.x;
+            agents_.nextPositionY[index] = next.y;
+        }
+    } else {
+        for (BaselineAgent& agent : baselineAgents_) {
+            if (!occupiesGate(agent.position)) {
+                continue;
+            }
+            agent.position = safeSide(agent.position, agent.velocity);
+            agent.nextWaypointDirection = {};
+        }
+    }
+}
+
+void Simulation::publish_render_snapshot() {
+    const std::uint32_t current =
+        publishedSnapshot_.load(std::memory_order_relaxed);
+    const std::uint32_t writeIndex = 1U - current;
+    RenderSnapshot& snapshot = renderSnapshots_[writeIndex];
+    snapshot.positionX.clear();
+    snapshot.positionY.clear();
+    snapshot.velocityX.clear();
+    snapshot.velocityY.clear();
+    snapshot.goal.clear();
+
+    if (config_.implementation == Implementation::optimized) {
+        snapshot.positionX.insert(
+            snapshot.positionX.end(),
+            agents_.positionX.begin(),
+            agents_.positionX.end());
+        snapshot.positionY.insert(
+            snapshot.positionY.end(),
+            agents_.positionY.begin(),
+            agents_.positionY.end());
+        snapshot.velocityX.insert(
+            snapshot.velocityX.end(),
+            agents_.velocityX.begin(),
+            agents_.velocityX.end());
+        snapshot.velocityY.insert(
+            snapshot.velocityY.end(),
+            agents_.velocityY.begin(),
+            agents_.velocityY.end());
+        snapshot.goal.insert(
+            snapshot.goal.end(),
+            agents_.goal.begin(),
+            agents_.goal.end());
+    } else {
+        for (const BaselineAgent& agent : baselineAgents_) {
+            snapshot.positionX.push_back(agent.position.x);
+            snapshot.positionY.push_back(agent.position.y);
+            snapshot.velocityX.push_back(agent.velocity.x);
+            snapshot.velocityY.push_back(agent.velocity.y);
+            snapshot.goal.push_back(agent.goal);
+        }
+    }
+    snapshot.tick = tickIndex_;
+    publishedSnapshot_.store(writeIndex, std::memory_order_release);
 }
 
 std::uint64_t Simulation::state_hash() const noexcept {
@@ -447,10 +548,18 @@ std::uint64_t Simulation::state_hash() const noexcept {
 }
 
 std::size_t Simulation::memory_bytes() const noexcept {
-    return agents_.memory_bytes() + spatial_.memory_bytes() +
+    std::size_t snapshotBytes{};
+    for (const RenderSnapshot& snapshot : renderSnapshots_) {
+        snapshotBytes +=
+            snapshot.positionX.capacity() * sizeof(float) +
+            snapshot.positionY.capacity() * sizeof(float) +
+            snapshot.velocityX.capacity() * sizeof(float) +
+            snapshot.velocityY.capacity() * sizeof(float) +
+            snapshot.goal.capacity() * sizeof(std::uint8_t);
+    }
+    return agents_.memory_bytes() + spatial_.memory_bytes() + snapshotBytes +
         baselineAgents_.capacity() * sizeof(BaselineAgent) +
         baselineNextPositions_.capacity() * sizeof(Vec2);
 }
 
 } // namespace rushgrid
-

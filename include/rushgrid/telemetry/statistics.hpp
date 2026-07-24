@@ -33,6 +33,7 @@ struct TickMetrics {
     std::uint32_t arrivals{};
     std::uint64_t jobsExecuted{};
     std::uint64_t jobsStolen{};
+    std::uint64_t maximumJobQueueDepth{};
 };
 
 struct PerformanceSummary {
@@ -46,4 +47,3 @@ struct PerformanceSummary {
 };
 
 } // namespace rushgrid
-
