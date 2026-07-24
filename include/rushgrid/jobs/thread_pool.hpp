@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -73,12 +72,10 @@ private:
     std::atomic<bool> stopping_{false};
     std::atomic<std::size_t> pending_{0};
     std::atomic<std::size_t> nextWorker_{0};
+    std::atomic<std::uint64_t> wakeGeneration_{0};
     std::atomic<std::uint64_t> executed_{0};
     std::atomic<std::uint64_t> stolen_{0};
     std::atomic<std::uint64_t> maximumQueueDepth_{0};
-    mutable std::mutex wakeMutex_;
-    std::condition_variable wakeCondition_;
-    std::condition_variable idleCondition_;
 
     void worker_loop(std::size_t workerIndex);
     bool try_take(std::size_t workerIndex, std::function<void()>& job);
@@ -88,4 +85,3 @@ private:
 };
 
 } // namespace rushgrid
-

@@ -1,6 +1,5 @@
 #include "rushgrid/jobs/thread_pool.hpp"
 
-#include <chrono>
 #include <limits>
 
 namespace rushgrid {
@@ -18,7 +17,8 @@ ThreadPool::ThreadPool(const std::size_t workerCount) {
 ThreadPool::~ThreadPool() {
     wait_for_idle();
     stopping_.store(true, std::memory_order_release);
-    wakeCondition_.notify_all();
+    wakeGeneration_.fetch_add(1, std::memory_order_release);
+    wakeGeneration_.notify_all();
     for (auto& worker : workers_) {
         if (worker->thread.joinable()) {
             worker->thread.join();
@@ -49,7 +49,8 @@ void ThreadPool::submit(std::function<void()> job) {
                depth,
                std::memory_order_relaxed)) {
     }
-    wakeCondition_.notify_one();
+    wakeGeneration_.fetch_add(1, std::memory_order_release);
+    wakeGeneration_.notify_one();
 }
 
 bool ThreadPool::try_take(
@@ -122,17 +123,21 @@ bool ThreadPool::try_run_one(const std::size_t helperIndex) {
 void ThreadPool::complete_one() {
     const std::size_t previous = pending_.fetch_sub(1, std::memory_order_acq_rel);
     if (previous == 1) {
-        idleCondition_.notify_all();
+        pending_.notify_all();
     }
 }
 
 void ThreadPool::worker_loop(const std::size_t workerIndex) {
     while (!stopping_.load(std::memory_order_acquire)) {
+        const std::uint64_t observedGeneration =
+            wakeGeneration_.load(std::memory_order_acquire);
         if (try_run_one(workerIndex)) {
             continue;
         }
-        std::unique_lock lock(wakeMutex_);
-        wakeCondition_.wait_for(lock, std::chrono::milliseconds(1));
+        if (stopping_.load(std::memory_order_acquire)) {
+            return;
+        }
+        wakeGeneration_.wait(observedGeneration, std::memory_order_acquire);
     }
 }
 
@@ -142,10 +147,13 @@ void ThreadPool::wait_for_idle() {
     }
 
     constexpr std::size_t externalHelper = std::numeric_limits<std::size_t>::max();
-    while (pending_.load(std::memory_order_acquire) != 0) {
+    while (true) {
+        const std::size_t pending = pending_.load(std::memory_order_acquire);
+        if (pending == 0) {
+            return;
+        }
         if (!try_run_one(externalHelper)) {
-            std::unique_lock lock(wakeMutex_);
-            idleCondition_.wait_for(lock, std::chrono::milliseconds(1));
+            pending_.wait(pending, std::memory_order_acquire);
         }
     }
 }
@@ -164,4 +172,3 @@ void ThreadPool::reset_stats() noexcept {
 }
 
 } // namespace rushgrid
-
