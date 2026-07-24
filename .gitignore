@@ -1,0 +1,13 @@
+/build*/
+/out/
+/.cache/
+/.vs/
+/.vscode/
+*.user
+*.suo
+*.ppm
+
+# Benchmark output is generated locally. Keep only the checked-in sample.
+/artifacts/csv/*.csv
+!/artifacts/csv/sample.csv
+
