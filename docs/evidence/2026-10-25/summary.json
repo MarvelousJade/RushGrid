@@ -1,5 +1,5 @@
 {
-  "reviewedAtUtc": "2026-10-25T22:52:36.682Z",
+  "reviewedAtUtc": "2026-10-25T22:53:58.496Z",
   "status": "verified bounded local synthetic worker-configuration experiment",
   "measuredAtUtc": {
     "start": "2026-10-25T22:51:28.1012364Z",
@@ -7,6 +7,7 @@
   },
   "baselineSourceCommit": "c484c2b3d396549e0494673082701b9376e9b667",
   "comparisonSourceCommit": "c484c2b3d396549e0494673082701b9376e9b667",
+  "fingerprintBoundary": "Source hashes describe compiler input working-tree bytes; raw CSV and command artifacts are stored as UTF-8/LF for stable Git transport.",
   "sourceChange": false,
   "baseline": {
     "workers": 0,
@@ -99,8 +100,8 @@
     "allocatedStorageBytes": "1055556",
     "regression": "8/8 current regression groups passed; see build-and-test.txt"
   },
-  "rawCsvSha256": "0dc38f93150250c5c5d30c7bb048b5690e44bb619d08d9990512ce0648dc8d87",
-  "commandsSha256": "4d6aa04142fade5a5850caa5fe9101d2b46fa232c8f59e456f8522e90a886634",
+  "rawCsvSha256": "5bf5caf13b7da334834fdc2b9d91e56402616b3e31caaa10dc18431028da6cd7",
+  "commandsSha256": "0442d2026553b3d00de34e274c6376d09d8caa34e5489e843a012f67640a7f14",
   "sourceHashes": [
     {
       "path": "CMakeLists.txt",

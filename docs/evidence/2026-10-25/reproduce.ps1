@@ -2,6 +2,7 @@ param([string]$OutputDirectory = 'docs/evidence/scaling-rerun')
 $ErrorActionPreference = 'Stop'
 if (Test-Path -LiteralPath $OutputDirectory) { throw 'Choose a new output directory to preserve prior evidence.' }
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
+@{ commit = (git rev-parse HEAD); capturedBeforeBuildUtc = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $OutputDirectory 'capture-source.json') -Encoding utf8
 New-Item -ItemType Directory -Force -Path 'build/evidence-oct25' | Out-Null
 $sources = @('src/jobs/thread_pool.cpp','src/navigation/navigation.cpp','src/simulation/agent_storage.cpp','src/simulation/simulation.cpp','src/spatial/spatial_grid.cpp','src/telemetry/profiler.cpp','src/telemetry/statistics.cpp','src/visualization/debug_image.cpp')
 $flags = @('-std=c++20','-O3','-DNDEBUG','-Wall','-Wextra','-Wpedantic','-Iinclude','-static','-static-libgcc','-static-libstdc++')

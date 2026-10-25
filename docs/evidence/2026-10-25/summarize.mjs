@@ -8,6 +8,7 @@ import { cpus, totalmem, release } from 'node:os';
 const folder = process.argv[2] ?? 'docs/evidence/2026-10-25';
 const sha = value => createHash('sha256').update(value).digest('hex');
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+const captureSource = JSON.parse(readFileSync(`${folder}/capture-source.json`, 'utf8').replace(/^\uFEFF/, ''));
 const raw = readFileSync(`${folder}/captures.csv`, 'utf8');
 const lines = raw.trim().split(/\r?\n/);
 const columns = lines.shift().split(',');
@@ -42,12 +43,13 @@ const baseline = condition(0), comparison = condition(5);
 const reduction = (baseline.medianRunMeanMs - comparison.medianRunMeanMs) / baseline.medianRunMeanMs * 100;
 const speedup = baseline.medianRunMeanMs / comparison.medianRunMeanMs;
 const trackedSources = git('ls-files', 'src', 'include', 'tests', 'CMakeLists.txt').split(/\r?\n/).filter(Boolean);
-assert.equal(git('diff', 'HEAD', '--', 'src', 'include', 'tests', 'CMakeLists.txt'), '', 'Measured tree must match HEAD');
+assert.equal(git('diff', captureSource.commit, '--', 'src', 'include', 'tests', 'CMakeLists.txt'), '', 'Measured source must still match captured revision');
 const sourceHashes = trackedSources.map(path => ({ path, sha256: sha(readFileSync(path)) }));
 const summary = {
   reviewedAtUtc: new Date().toISOString(), status: 'verified bounded local synthetic worker-configuration experiment',
   measuredAtUtc: { start: commands[0].startedAtUtc, lastCaptureStart: commands.at(-1).startedAtUtc },
-  baselineSourceCommit: git('rev-parse', 'HEAD'), comparisonSourceCommit: git('rev-parse', 'HEAD'),
+  baselineSourceCommit: captureSource.commit, comparisonSourceCommit: captureSource.commit,
+  fingerprintBoundary: 'Source hashes describe compiler input working-tree bytes; raw CSV and command artifacts are stored as UTF-8/LF for stable Git transport.',
   sourceChange: false, baseline, comparison, reductionPercent: reduction, speedup,
   formulas: { reduction: '(baseline median run mean - comparison median run mean) / baseline median run mean * 100',
     speedup: 'baseline median run mean / comparison median run mean' },
