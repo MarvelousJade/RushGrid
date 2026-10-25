@@ -1,0 +1,213 @@
+{
+  "reviewedAtUtc": "2026-10-25T22:52:36.682Z",
+  "status": "verified bounded local synthetic worker-configuration experiment",
+  "measuredAtUtc": {
+    "start": "2026-10-25T22:51:28.1012364Z",
+    "lastCaptureStart": "2026-10-25T22:51:35.8348261Z"
+  },
+  "baselineSourceCommit": "c484c2b3d396549e0494673082701b9376e9b667",
+  "comparisonSourceCommit": "c484c2b3d396549e0494673082701b9376e9b667",
+  "sourceChange": false,
+  "baseline": {
+    "workers": 0,
+    "samples": 5,
+    "runMeansMs": [
+      3.312704,
+      3.496392,
+      3.433175,
+      3.545741,
+      3.334385
+    ],
+    "runP95sMs": [
+      3.9812,
+      4.7702,
+      4.2581,
+      4.2939,
+      3.8406
+    ],
+    "medianRunMeanMs": 3.433175,
+    "minRunMeanMs": 3.312704,
+    "maxRunMeanMs": 3.545741,
+    "medianWithinRunP95Ms": 4.2581
+  },
+  "comparison": {
+    "workers": 5,
+    "samples": 5,
+    "runMeansMs": [
+      0.90004,
+      0.887973,
+      0.890509,
+      0.899424,
+      0.915299
+    ],
+    "runP95sMs": [
+      1.1431,
+      1.1457,
+      1.1222,
+      1.1594,
+      1.1557
+    ],
+    "medianRunMeanMs": 0.899424,
+    "minRunMeanMs": 0.887973,
+    "maxRunMeanMs": 0.915299,
+    "medianWithinRunP95Ms": 1.1457
+  },
+  "reductionPercent": 73.80197630473249,
+  "speedup": 3.8170818212544915,
+  "formulas": {
+    "reduction": "(baseline median run mean - comparison median run mean) / baseline median run mean * 100",
+    "speedup": "baseline median run mean / comparison median run mean"
+  },
+  "environment": {
+    "platform": "win32",
+    "osRelease": "10.0.26300",
+    "cpu": "AMD Ryzen 5 3600 6-Core Processor              ",
+    "logicalCpus": 12,
+    "totalMemoryBytes": 17101787136,
+    "node": "v22.23.3",
+    "compiler": "g++ (x86_64-posix-seh-rev0, Built by MinGW-Builds project) 16.1.0",
+    "compileFlags": "-std=c++20 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Iinclude -static -static-libgcc -static-libstdc++"
+  },
+  "workload": {
+    "origin": "repository deterministic concourse scenario",
+    "synthetic": true,
+    "seed": 1337,
+    "agents": 10000,
+    "warmupTicks": 60,
+    "measuredTicksPerCapture": 300,
+    "repeatsPerCondition": 5,
+    "conditionOrder": [
+      0,
+      5,
+      5,
+      0,
+      0,
+      5,
+      5,
+      0,
+      0,
+      5
+    ],
+    "dynamicGateClosure": "halfway through each capture",
+    "cache": "warm simulation state; no OS cold-cache guarantee; five independent process captures per condition"
+  },
+  "correctness": {
+    "finalStateHash": "1485354910717009622",
+    "allFinalStatesEqual": true,
+    "totalArrivals": "0",
+    "allArrivalCountsEqual": true,
+    "allocatedStorageBytes": "1055556",
+    "regression": "8/8 current regression groups passed; see build-and-test.txt"
+  },
+  "rawCsvSha256": "0dc38f93150250c5c5d30c7bb048b5690e44bb619d08d9990512ce0648dc8d87",
+  "commandsSha256": "4d6aa04142fade5a5850caa5fe9101d2b46fa232c8f59e456f8522e90a886634",
+  "sourceHashes": [
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "576c9a6023940854601a609c1f3dab2cf5d5f281370db0ae75328ce10fc00a81"
+    },
+    {
+      "path": "include/rushgrid/core/types.hpp",
+      "sha256": "0fd6cade60d68dfb4626233c1be75b01829963b9170425ef5ebeb32520372dcc"
+    },
+    {
+      "path": "include/rushgrid/jobs/thread_pool.hpp",
+      "sha256": "311fff4fb2c15b55205d4a7ff00a52756ed8144c8ab21a93e47a015680895c0b"
+    },
+    {
+      "path": "include/rushgrid/navigation/navigation.hpp",
+      "sha256": "b2e632cc45269a8de9be1c745e03014729c0331ba9198c529977fa27a88de5a3"
+    },
+    {
+      "path": "include/rushgrid/simulation/agent_storage.hpp",
+      "sha256": "c5620ad596584c286ba0ae38b0f0f110007ae97031eee6b6dfc8460f2fdc9d30"
+    },
+    {
+      "path": "include/rushgrid/simulation/simulation.hpp",
+      "sha256": "531d49a4f0d1b179527f1c2da8470743c2c52988e3aa71734a5d610816f018ad"
+    },
+    {
+      "path": "include/rushgrid/spatial/spatial_grid.hpp",
+      "sha256": "6309562770bae7f46544f41f455213a65a7b8842ecbe8fe57a664e25751818c5"
+    },
+    {
+      "path": "include/rushgrid/telemetry/profiler.hpp",
+      "sha256": "a8811c1b13e460b97356e9a191a21b2bdbd47381a9b53a0e52b7be482e8fc853"
+    },
+    {
+      "path": "include/rushgrid/telemetry/statistics.hpp",
+      "sha256": "68dc477084746669f6947837af764c4191f7e77098d4fa74e8bdc42bba49e751"
+    },
+    {
+      "path": "include/rushgrid/visualization/debug_image.hpp",
+      "sha256": "175f1bf892b58425f1cbd89ad101621dbf84b6d8ba4943fb33d44e95fe42c5e8"
+    },
+    {
+      "path": "src/app/benchmark_main.cpp",
+      "sha256": "a9031f6eb19f9b38115dfb05ca1946572b1bb838d4aacd71f6be3763827b9795"
+    },
+    {
+      "path": "src/app/demo_main.cpp",
+      "sha256": "75e35f20e59bb43176c1ce1ec9a6f03833f61abb18892f35498d7a5938cc4f90"
+    },
+    {
+      "path": "src/app/window_main.cpp",
+      "sha256": "61d0173a3121b75ed74afcc78818ddee49e101b5ede90c2da36d8e8bfeb227cd"
+    },
+    {
+      "path": "src/jobs/thread_pool.cpp",
+      "sha256": "6f3d53dfa1f58c888f2723a9cb22f2359b2601ffff11d70a7a81029d47bdd348"
+    },
+    {
+      "path": "src/navigation/navigation.cpp",
+      "sha256": "831d2de9d3b3ea412d2b30caba4338d4a34a3265dfc45d1095de5ff29ea702df"
+    },
+    {
+      "path": "src/simulation/agent_storage.cpp",
+      "sha256": "d82e4d46727b3c6f214baecdd6158a0932434294dd1af24b42ad36755974282a"
+    },
+    {
+      "path": "src/simulation/simulation.cpp",
+      "sha256": "dee546a96bbade55a8cc37af3d3c8b46fef850439ed5e3e682401ce0882e3291"
+    },
+    {
+      "path": "src/spatial/spatial_grid.cpp",
+      "sha256": "dab102ed9c71aeb23886c32de9b36aa847d3503b73a195335e359c7b7e618909"
+    },
+    {
+      "path": "src/telemetry/profiler.cpp",
+      "sha256": "1f61450a06243535d60eb09b7e3b2c2ce07bfccc501972e4a12a1c066ec1eca0"
+    },
+    {
+      "path": "src/telemetry/statistics.cpp",
+      "sha256": "65d3a7cceddb095da088b34538b8e56fcb65329a68129ef1d007ac5dc04a04cd"
+    },
+    {
+      "path": "src/visualization/debug_image.cpp",
+      "sha256": "ed898213b6eccd787fbb262805465e25d8a42d72f2eab00ca08381c0221bcf8b"
+    },
+    {
+      "path": "tests/rushgrid_tests.cpp",
+      "sha256": "394340986c983ea8dd1d02fabe1607f04565f9d4556ade3f1f2161203eecf030"
+    }
+  ],
+  "binaries": [
+    {
+      "name": "rushgrid_benchmark.exe",
+      "sha256": "9d198adf146daf3e7f402ba3abfb87eb9dce5ca9e93203432b6a21ede12f9ae4"
+    },
+    {
+      "name": "rushgrid_tests.exe",
+      "sha256": "61a5dfa6335be832315e602552bf7564a5b9bcf809bf0a7982d321d505b69621"
+    }
+  ],
+  "limitations": [
+    "Short local capture; no real usage, process RSS or hard realtime guarantee.",
+    "One scenario/seed and machine; no general hardware or workload scaling guarantee.",
+    "Raw harness retains run aggregates, not individual tick samples; median of run p95s is not pooled p95.",
+    "Background activity, power settings and CPU scheduling were not instrumented.",
+    "Existing worker configuration comparison; no source revision improvement or new implementation claimed.",
+    "Automated project measurement does not establish the candidate personally implemented or ran it."
+  ],
+  "candidateOutcomeBullet": "Measured 3.82x worker scaling for a 10,000-agent C++20 simulation (3.43 to 0.90 ms median run-average tick) across five paired local synthetic captures with identical final states."
+}

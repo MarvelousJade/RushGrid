@@ -1,0 +1,27 @@
+{
+  "reviewedAtUtc": "2026-10-25T22:51:27.866Z",
+  "reviewedSourceCommit": "c484c2b3d396549e0494673082701b9376e9b667",
+  "baselineMeaning": "Review commit only; historical experiment revisions are unknown unless explicitly recorded in the linked source.",
+  "files": [
+    {
+      "path": "docs/PROFILING.md",
+      "bytes": 3967,
+      "sha256": "1842125b027dab786c6c286d3ac71ca1f3038d1c564b4461f9814f44b46f0868"
+    },
+    {
+      "path": "artifacts/csv/sample.csv",
+      "bytes": 7204,
+      "sha256": "600daea55fb60ef60678a690720181f1a31fb021ea54e4c21c2d20def9e85677"
+    },
+    {
+      "path": "src/app/benchmark_main.cpp",
+      "bytes": 9162,
+      "sha256": "a9031f6eb19f9b38115dfb05ca1946572b1bb838d4aacd71f6be3763827b9795"
+    },
+    {
+      "path": "tests/rushgrid_tests.cpp",
+      "bytes": 7985,
+      "sha256": "394340986c983ea8dd1d02fabe1607f04565f9d4556ade3f1f2161203eecf030"
+    }
+  ]
+}
